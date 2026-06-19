@@ -1391,7 +1391,7 @@ export default function App() {
                         <li>{t[lang].champRule1}</li>
                         <li>{t[lang].champRule2}</li>
                         <li>{t[lang].champRule3}</li>
-                        <li className="font-semibold text-brand-wine">{t[lang].champRule4}</li>
+                        <li>{t[lang].champRule4}</li>
                       </ul>
                     </>
                   ) : (
@@ -1404,7 +1404,7 @@ export default function App() {
                         <li>{t[lang].rule1}</li>
                         <li>{t[lang].rule2}</li>
                         <li>{t[lang].rule3}</li>
-                        <li className="font-semibold text-brand-wine">{t[lang].rule4}</li>
+                        <li>{t[lang].rule4}</li>
                       </ul>
                     </>
                   )}
@@ -1804,7 +1804,7 @@ export default function App() {
             )}
 
             {/* OPTIONS GRID */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mb-6 sm:mb-8">
               {activeQuestion.options.map((option, index) => {
                 const isCorrect = option === activeQuestion.correctAnswer;
                 const isSelected = option === selectedOpt;
@@ -1845,7 +1845,7 @@ export default function App() {
 
             {/* FEEDBACK BOTTOM PANEL */}
             {isAnswered && (
-              <div className="border-t border-brand-border pt-6 flex flex-col items-center text-center animate-stamp">
+              <div className="border-t border-brand-border pt-4 sm:pt-6 flex flex-col items-center text-center animate-stamp">
                 
                 {selectedOpt === null ? (
                   <div className="passport-stamp text-feedback-error border-feedback-error border-3 px-6 py-2 rotate-[-5deg] font-serif font-black tracking-widest text-lg mb-3">
@@ -1866,16 +1866,12 @@ export default function App() {
                   </div>
                 )}
 
-                <p className="text-xs text-brand-wine/90 max-w-lg mb-6 leading-relaxed bg-brand-wine/5 border border-brand-border/60 rounded px-4 py-3 font-mono mt-1 text-center">
-                  <span className="font-bold text-[10px] uppercase block tracking-wider text-brand-wine/70 mb-1">{t[lang].correctAnswer}</span>
-                  {lang === 'ES' ? activeQuestion.detailES : activeQuestion.detailEN}
-                </p>
-
+                {/* primary action button above description to prevent scrolling down on mobile */}
                 <button
                   type="button"
                   id="next-question-btn"
                   onClick={nextQuestion}
-                  className="bg-brand-wine text-brand-cream hover:bg-brand-wine/90 py-3 px-8 rounded font-serif text-md tracking-wider flex items-center gap-1.5 transition-all cursor-pointer font-semibold animate-bounce"
+                  className="bg-brand-wine text-brand-cream hover:bg-brand-wine/90 py-3 px-8 rounded font-serif text-md tracking-wider flex items-center gap-1.5 transition-all cursor-pointer font-semibold animate-bounce mt-2 mb-4"
                 >
                   <span>
                     {mode === 'individual' 
@@ -1887,6 +1883,11 @@ export default function App() {
                   </span>
                   <ChevronRight className="w-4 h-4" />
                 </button>
+
+                <p className="text-xs text-brand-wine/90 max-w-lg mb-2 leading-relaxed bg-brand-wine/5 border border-brand-border/60 rounded px-4 py-3 font-mono mt-1 text-center">
+                  <span className="font-bold text-[10px] uppercase block tracking-wider text-brand-wine/70 mb-1">{t[lang].correctAnswer}</span>
+                  {lang === 'ES' ? activeQuestion.detailES : activeQuestion.detailEN}
+                </p>
 
               </div>
             )}

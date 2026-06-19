@@ -61,8 +61,13 @@ export default function App() {
   const [mode, setMode] = useState<'individual' | 'multiplayer' | 'champion'>('champion');
   const [view, setView] = useState<'welcome' | 'lobby' | 'quiz' | 'results'>('welcome');
   const [roomId, setRoomId] = useState<string>('');
-  const [nickname, setNickname] = useState<string>('');
+  const [nickname, setNickname] = useState<string>(() => localStorage.getItem('ballerid_nickname') || '');
   const [isDetectedRoom, setIsDetectedRoom] = useState<boolean>(false);
+  
+  // Save nickname to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('ballerid_nickname', nickname);
+  }, [nickname]);
   
   // Leaderboards
   const [roomPlayers, setRoomPlayers] = useState<RoomPlayer[]>([]);
@@ -250,10 +255,19 @@ export default function App() {
     const params = new URLSearchParams(window.location.search);
     const rId = params.get('roomId');
     if (rId) {
+      const upperRoomId = rId.toUpperCase();
       setMode('multiplayer');
-      setRoomId(rId.toUpperCase());
-      loadRoomPlayers(rId.toUpperCase());
+      setRoomId(upperRoomId);
       setIsDetectedRoom(true);
+
+      const savedNickname = localStorage.getItem('ballerid_nickname') || '';
+      if (savedNickname.trim().length >= 2 && savedNickname.trim().length <= 15) {
+        // Auto-join lobby on refresh if nickname is already present
+        loadRoomPlayers(upperRoomId);
+        setView('lobby');
+      } else {
+        loadRoomPlayers(upperRoomId);
+      }
     }
   }, []);
 
@@ -487,11 +501,29 @@ export default function App() {
     const newUrl = `${window.location.origin}${window.location.pathname}?roomId=${randomCode}`;
     window.history.pushState({ path: newUrl }, '', newUrl);
 
-    // Save initial room structure
+    // Save initial room structure with creator registered as score -1
     const allRooms = JSON.parse(localStorage.getItem('ballerid_rooms') || '{}');
-    allRooms[randomCode] = [];
+    const newEntry: RoomPlayer = {
+      nickname: nickname.trim(),
+      score: -1,
+      completedAt: Date.now(),
+      correctAnswers: 0
+    };
+    allRooms[randomCode] = [newEntry];
     localStorage.setItem('ballerid_rooms', JSON.stringify(allRooms));
-    setRoomPlayers([]);
+    setRoomPlayers([newEntry]);
+
+    // Save registration score to Supabase (async)
+    saveResult({
+      nickname: nickname.trim(),
+      score: -1,
+      mode: 'multiplayer',
+      correctAnswers: 0,
+      roomId: randomCode,
+      completedAt: Date.now()
+    }).then(() => {
+      loadRoomPlayers(randomCode);
+    });
 
     setView('lobby');
   };
@@ -514,7 +546,39 @@ export default function App() {
     const newUrl = `${window.location.origin}${window.location.pathname}?roomId=${cleanRoomId}`;
     window.history.pushState({ path: newUrl }, '', newUrl);
 
-    loadRoomPlayers(cleanRoomId);
+    // Save player score as -1 in local rooms to represent "joined but not finished"
+    const allRooms = JSON.parse(localStorage.getItem('ballerid_rooms') || '{}');
+    const players: RoomPlayer[] = allRooms[cleanRoomId] || [];
+    const existingIdx = players.findIndex(p => p.nickname.toLowerCase() === nickname.toLowerCase());
+    const newEntry: RoomPlayer = {
+      nickname: nickname.trim(),
+      score: -1,
+      completedAt: Date.now(),
+      correctAnswers: 0
+    };
+    if (existingIdx !== -1) {
+      // Keep existing score if they already played and have a score >= 0
+      if (players[existingIdx].score < 0) {
+        players[existingIdx] = newEntry;
+      }
+    } else {
+      players.push(newEntry);
+    }
+    allRooms[cleanRoomId] = players;
+    localStorage.setItem('ballerid_rooms', JSON.stringify(allRooms));
+
+    // Save registration score to Supabase (async)
+    saveResult({
+      nickname: nickname.trim(),
+      score: -1,
+      mode: 'multiplayer',
+      correctAnswers: 0,
+      roomId: cleanRoomId,
+      completedAt: Date.now()
+    }).then(() => {
+      loadRoomPlayers(cleanRoomId);
+    });
+
     setView('lobby');
   };
 
@@ -1417,22 +1481,24 @@ export default function App() {
                             <div>
                               <div className="flex items-center gap-1.5">
                                 <span className="font-mono text-sm font-semibold">{player.nickname}</span>
-                                {isFirst && (
+                                {isFirst && player.score >= 0 && (
                                   <span className="text-[9px] uppercase font-serif font-bold text-brand-cream bg-feedback-warning px-1.5 py-0.5 rounded rotate-[-2deg] tracking-wide">
                                     {lang === 'ES' ? t.ES.pizarritaTag : t.EN.tacticianTag}
                                   </span>
                                 )}
                               </div>
                               <span className="text-[9px] text-brand-wine/50 block">
-                                {formatDate(player.completedAt)} • {player.correctAnswers}/10
+                                {formatDate(player.completedAt)} • {player.score === -1 ? (lang === 'ES' ? 'Sin jugar' : 'Not played') : `${player.correctAnswers}/10`}
                               </span>
                             </div>
                           </div>
                           <div className="text-right">
                             <span className="font-mono font-bold text-sm text-brand-wine">
-                              {player.score.toLocaleString()}
+                              {player.score === -1 ? '⏳' : player.score.toLocaleString()}
                             </span>
-                            <span className="text-[8px] uppercase tracking-wider block text-brand-wine/50">{t[lang].scoreCol}</span>
+                            <span className="text-[8px] uppercase tracking-wider block text-brand-wine/50">
+                              {player.score === -1 ? (lang === 'ES' ? 'En espera' : 'Waiting') : t[lang].scoreCol}
+                            </span>
                           </div>
                         </div>
                       );
@@ -1898,7 +1964,7 @@ export default function App() {
                             <span className={`font-mono text-sm ${isCurrentUser ? 'font-bold underlineDecoration' : 'font-semibold'}`}>
                               {player.nickname} {isCurrentUser && `(Tú)`}
                             </span>
-                            {isFirst && (
+                            {isFirst && player.score >= 0 && (
                               <span className="text-[9px] uppercase font-serif font-bold text-brand-cream bg-feedback-warning px-1.5 py-0.5 rounded rotate-[-2deg] tracking-wide">
                                 {mode === 'champion' ? '🏆 CHAMP' : (lang === 'ES' ? t.ES.pizarritaTag : t.EN.tacticianTag)}
                               </span>
@@ -1906,8 +1972,14 @@ export default function App() {
                           </div>
                           
                           <span className="text-[9px] text-brand-wine/50 block">
-                            {formatDate(player.completedAt)} • {mode === 'champion' ? getPhaseReachedLabel(player.correctAnswers) : `${player.correctAnswers} ${t[lang].correctCountLabel}`}
-                            {player.categoryStats && Object.keys(player.categoryStats).length > 0 && (() => {
+                            {formatDate(player.completedAt)} • {
+                              player.score === -1 
+                                ? (lang === 'ES' ? 'Sin jugar' : 'Not played') 
+                                : (mode === 'champion' 
+                                  ? getPhaseReachedLabel(player.correctAnswers) 
+                                  : `${player.correctAnswers} ${t[lang].correctCountLabel}`)
+                            }
+                            {player.score !== -1 && player.categoryStats && Object.keys(player.categoryStats).length > 0 && (() => {
                               const role = calculateSpecialtyRole(player.categoryStats);
                               const info = ROLE_LABELS[role];
                               return <span className="ml-1 text-[8px] text-brand-wine/70 font-semibold">{info.icon} {lang === 'ES' ? info.ES : info.EN}</span>;
@@ -1918,9 +1990,11 @@ export default function App() {
 
                       <div className="text-right">
                         <span className="font-mono font-bold text-sm text-brand-wine">
-                          {player.score.toLocaleString()}
+                          {player.score === -1 ? '⏳' : player.score.toLocaleString()}
                         </span>
-                        <span className="text-[8px] uppercase tracking-wider block text-brand-wine/50">{t[lang].scoreCol}</span>
+                        <span className="text-[8px] uppercase tracking-wider block text-brand-wine/50">
+                          {player.score === -1 ? (lang === 'ES' ? 'En espera' : 'Waiting') : t[lang].scoreCol}
+                        </span>
                       </div>
                     </div>
                   );

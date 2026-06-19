@@ -31,3 +31,6 @@ resources/
 revisar.txt
 información.md
 preguntas_posibles.md
+
+.vercel
+.env*

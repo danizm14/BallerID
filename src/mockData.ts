@@ -52,7 +52,7 @@ export const mockMatches: Match[] = [
     "scoreA": 2,
     "scoreB": 0,
     "collective": {
-      "possessionA": 50,
+      "possessionA": 62,
       "crossesA": 13,
       "crossesB": 8,
       "shotsOnTargetA": 4,
@@ -434,7 +434,7 @@ export const mockMatches: Match[] = [
     "scoreA": 2,
     "scoreB": 1,
     "collective": {
-      "possessionA": 50,
+      "possessionA": 44,
       "crossesA": 17,
       "crossesB": 15,
       "shotsOnTargetA": 6,
@@ -823,7 +823,7 @@ export const mockMatches: Match[] = [
     "scoreA": 1,
     "scoreB": 1,
     "collective": {
-      "possessionA": 50,
+      "possessionA": 41,
       "crossesA": 30,
       "crossesB": 8,
       "shotsOnTargetA": 4,
@@ -1216,7 +1216,7 @@ export const mockMatches: Match[] = [
     "scoreA": 4,
     "scoreB": 1,
     "collective": {
-      "possessionA": 50,
+      "possessionA": 55,
       "crossesA": 23,
       "crossesB": 5,
       "shotsOnTargetA": 6,
@@ -1612,7 +1612,7 @@ export const mockMatches: Match[] = [
     "scoreA": 0,
     "scoreB": 1,
     "collective": {
-      "possessionA": 50,
+      "possessionA": 48,
       "crossesA": 26,
       "crossesB": 16,
       "shotsOnTargetA": 2,
@@ -1976,7 +1976,7 @@ export const mockMatches: Match[] = [
     "scoreA": 2,
     "scoreB": 0,
     "collective": {
-      "possessionA": 50,
+      "possessionA": 52,
       "crossesA": 14,
       "crossesB": 28,
       "shotsOnTargetA": 4,
@@ -2369,7 +2369,7 @@ export const mockMatches: Match[] = [
     "scoreA": 1,
     "scoreB": 1,
     "collective": {
-      "possessionA": 50,
+      "possessionA": 56,
       "crossesA": 19,
       "crossesB": 14,
       "shotsOnTargetA": 5,
@@ -2762,7 +2762,7 @@ export const mockMatches: Match[] = [
     "scoreA": 1,
     "scoreB": 1,
     "collective": {
-      "possessionA": 50,
+      "possessionA": 59,
       "crossesA": 8,
       "crossesB": 34,
       "shotsOnTargetA": 3,
@@ -3148,7 +3148,7 @@ export const mockMatches: Match[] = [
     "scoreA": 1,
     "scoreB": 0,
     "collective": {
-      "possessionA": 50,
+      "possessionA": 45,
       "crossesA": 15,
       "crossesB": 14,
       "shotsOnTargetA": 4,
@@ -3523,7 +3523,7 @@ export const mockMatches: Match[] = [
     "scoreA": 7,
     "scoreB": 1,
     "collective": {
-      "possessionA": 50,
+      "possessionA": 53,
       "crossesA": 20,
       "crossesB": 5,
       "shotsOnTargetA": 12,
@@ -3936,7 +3936,7 @@ export const mockMatches: Match[] = [
     "scoreA": 2,
     "scoreB": 2,
     "collective": {
-      "possessionA": 50,
+      "possessionA": 58,
       "crossesA": 23,
       "crossesB": 24,
       "shotsOnTargetA": 6,
@@ -4336,7 +4336,7 @@ export const mockMatches: Match[] = [
     "scoreA": 5,
     "scoreB": 1,
     "collective": {
-      "possessionA": 50,
+      "possessionA": 54,
       "crossesA": 12,
       "crossesB": 13,
       "shotsOnTargetA": 7,
@@ -4754,7 +4754,7 @@ export const mockMatches: Match[] = [
     "scoreA": 1,
     "scoreB": 1,
     "collective": {
-      "possessionA": 50,
+      "possessionA": 49,
       "crossesA": 6,
       "crossesB": 42,
       "shotsOnTargetA": 3,
@@ -5147,7 +5147,7 @@ export const mockMatches: Match[] = [
     "scoreA": 0,
     "scoreB": 0,
     "collective": {
-      "possessionA": 50,
+      "possessionA": 39,
       "crossesA": 39,
       "crossesB": 3,
       "shotsOnTargetA": 7,
@@ -5514,7 +5514,7 @@ export const mockMatches: Match[] = [
     "scoreA": 2,
     "scoreB": 2,
     "collective": {
-      "possessionA": 50,
+      "possessionA": 51,
       "crossesA": 18,
       "crossesB": 11,
       "shotsOnTargetA": 4,
@@ -5910,7 +5910,7 @@ export const mockMatches: Match[] = [
     "scoreA": 1,
     "scoreB": 1,
     "collective": {
-      "possessionA": 50,
+      "possessionA": 43,
       "crossesA": 15,
       "crossesB": 17,
       "shotsOnTargetA": 4,
@@ -6296,7 +6296,7 @@ export const mockMatches: Match[] = [
     "scoreA": 3,
     "scoreB": 1,
     "collective": {
-      "possessionA": 50,
+      "possessionA": 57,
       "crossesA": 9,
       "crossesB": 11,
       "shotsOnTargetA": 8,
@@ -6670,7 +6670,7 @@ export const mockMatches: Match[] = [
     "scoreA": 1,
     "scoreB": 4,
     "collective": {
-      "possessionA": 50,
+      "possessionA": 46,
       "crossesA": 9,
       "crossesB": 17,
       "shotsOnTargetA": 1,
@@ -7070,7 +7070,7 @@ export const mockMatches: Match[] = [
     "scoreA": 3,
     "scoreB": 0,
     "collective": {
-      "possessionA": 50,
+      "possessionA": 47,
       "crossesA": 5,
       "crossesB": 8,
       "shotsOnTargetA": 6,
@@ -7470,7 +7470,7 @@ export const mockMatches: Match[] = [
     "scoreA": 3,
     "scoreB": 1,
     "collective": {
-      "possessionA": 50,
+      "possessionA": 38,
       "crossesA": 17,
       "crossesB": 15,
       "shotsOnTargetA": 4,
@@ -7870,7 +7870,7 @@ export const mockMatches: Match[] = [
     "scoreA": 1,
     "scoreB": 0,
     "collective": {
-      "possessionA": 50,
+      "possessionA": 42,
       "crossesA": 17,
       "crossesB": 21,
       "shotsOnTargetA": 2,
@@ -8251,7 +8251,7 @@ export const mockMatches: Match[] = [
     "scoreA": 4,
     "scoreB": 2,
     "collective": {
-      "possessionA": 50,
+      "possessionA": 61,
       "crossesA": 15,
       "crossesB": 12,
       "shotsOnTargetA": 11,
@@ -8672,7 +8672,7 @@ export const mockMatches: Match[] = [
     "scoreA": 1,
     "scoreB": 1,
     "collective": {
-      "possessionA": 50,
+      "possessionA": 62,
       "crossesA": 23,
       "crossesB": 10,
       "shotsOnTargetA": 1,
@@ -9057,7 +9057,7 @@ export const mockMatches: Match[] = [
     "scoreA": 1,
     "scoreB": 3,
     "collective": {
-      "possessionA": 50,
+      "possessionA": 44,
       "crossesA": 11,
       "crossesB": 18,
       "shotsOnTargetA": 2,

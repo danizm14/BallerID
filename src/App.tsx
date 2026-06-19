@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { generateQuizQuestions } from './questionGenerator';
 import type { Question } from './questionGenerator';
+import { saveResult, fetchLeaderboard, fetchRoomLeaderboard } from './db';
 
 interface RoomPlayer {
   nickname: string;
@@ -385,41 +386,55 @@ export default function App() {
     };
   };
 
-  // Sync Room Leaderboard from localStorage
-  const loadRoomPlayers = (rId: string) => {
-    const allRooms = JSON.parse(localStorage.getItem('ballerid_rooms') || '{}');
-    if (allRooms[rId]) {
-      setRoomPlayers(allRooms[rId]);
-    } else {
-      const prePopulated = [...DEFAULT_ROOM_BOTS].sort((a, b) => b.score - a.score);
-      allRooms[rId] = prePopulated;
-      localStorage.setItem('ballerid_rooms', JSON.stringify(allRooms));
-      setRoomPlayers(prePopulated);
+  const mergeLeaderboards = (cloud: RoomPlayer[], localOrBots: RoomPlayer[]): RoomPlayer[] => {
+    const seen = new Map<string, RoomPlayer>();
+    for (const item of localOrBots) {
+      seen.set(item.nickname.toLowerCase(), item);
     }
+    for (const item of cloud) {
+      const key = item.nickname.toLowerCase();
+      if (!seen.has(key) || item.score > seen.get(key)!.score) {
+        seen.set(key, item);
+      }
+    }
+    return Array.from(seen.values())
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 20);
+  };
+
+  // Sync Room Leaderboard
+  const loadRoomPlayers = async (rId: string) => {
+    const cloudEntries = await fetchRoomLeaderboard(rId);
+    const allRooms = JSON.parse(localStorage.getItem('ballerid_rooms') || '{}');
+    const localBoard = allRooms[rId] || [];
+    const merged = mergeLeaderboards(cloudEntries as RoomPlayer[], localBoard.length > 0 ? localBoard : DEFAULT_ROOM_BOTS);
+    
+    // Cache merged version back to local
+    allRooms[rId] = merged;
+    localStorage.setItem('ballerid_rooms', JSON.stringify(allRooms));
+    setRoomPlayers(merged);
   };
 
   // Load Global Leaderboard
-  const loadGlobalLeaderboard = () => {
+  const loadGlobalLeaderboard = async () => {
+    const cloudEntries = await fetchLeaderboard('individual');
     const globalBoard = localStorage.getItem('ballerid_global_leaderboard');
-    if (globalBoard) {
-      setGlobalPlayers(JSON.parse(globalBoard));
-    } else {
-      const prePopulated = [...DEFAULT_GLOBAL_BOTS].sort((a, b) => b.score - a.score);
-      localStorage.setItem('ballerid_global_leaderboard', JSON.stringify(prePopulated));
-      setGlobalPlayers(prePopulated);
-    }
+    const localBoard = globalBoard ? JSON.parse(globalBoard) : [];
+    const merged = mergeLeaderboards(cloudEntries as RoomPlayer[], localBoard.length > 0 ? localBoard : DEFAULT_GLOBAL_BOTS);
+    
+    localStorage.setItem('ballerid_global_leaderboard', JSON.stringify(merged));
+    setGlobalPlayers(merged);
   };
 
   // Load Champion Leaderboard
-  const loadChampionLeaderboard = () => {
+  const loadChampionLeaderboard = async () => {
+    const cloudEntries = await fetchLeaderboard('champion');
     const board = localStorage.getItem('ballerid_champion_leaderboard');
-    if (board) {
-      setChampionPlayers(JSON.parse(board));
-    } else {
-      const prePopulated = [...DEFAULT_CHAMPION_BOTS].sort((a, b) => b.score - a.score);
-      localStorage.setItem('ballerid_champion_leaderboard', JSON.stringify(prePopulated));
-      setChampionPlayers(prePopulated);
-    }
+    const localBoard = board ? JSON.parse(board) : [];
+    const merged = mergeLeaderboards(cloudEntries as RoomPlayer[], localBoard.length > 0 ? localBoard : DEFAULT_CHAMPION_BOTS);
+    
+    localStorage.setItem('ballerid_champion_leaderboard', JSON.stringify(merged));
+    setChampionPlayers(merged);
   };
 
   const handleStartIndividual = (e: React.FormEvent) => {
@@ -743,9 +758,6 @@ export default function App() {
       clearInterval(timerIntervalRef.current);
     }
 
-    // Save score to Global Leaderboard
-    const globalBoard: RoomPlayer[] = JSON.parse(localStorage.getItem('ballerid_global_leaderboard') || '[]');
-    
     const newEntry: RoomPlayer = {
       nickname: nickname.trim(),
       score: score,
@@ -754,7 +766,8 @@ export default function App() {
       categoryStats
     };
 
-    // Check if player already exists in the global list
+    // Save score to Global Leaderboard (Optimistic local)
+    const globalBoard: RoomPlayer[] = JSON.parse(localStorage.getItem('ballerid_global_leaderboard') || '[]');
     const existingIdx = globalBoard.findIndex(p => p.nickname.toLowerCase() === nickname.toLowerCase());
     if (existingIdx !== -1) {
       if (score > globalBoard[existingIdx].score) {
@@ -763,13 +776,22 @@ export default function App() {
     } else {
       globalBoard.push(newEntry);
     }
-
-    // Sort by score descending and take top 20
     globalBoard.sort((a, b) => b.score - a.score);
     const limitedGlobal = globalBoard.slice(0, 20);
-
     localStorage.setItem('ballerid_global_leaderboard', JSON.stringify(limitedGlobal));
     setGlobalPlayers(limitedGlobal);
+
+    // Async save & sync to Supabase
+    saveResult({
+      nickname: newEntry.nickname,
+      score: newEntry.score,
+      mode: 'individual',
+      correctAnswers: newEntry.correctAnswers,
+      categoryStats: newEntry.categoryStats,
+      completedAt: newEntry.completedAt
+    }).then(() => {
+      loadGlobalLeaderboard();
+    });
 
     setView('results');
   };
@@ -779,9 +801,6 @@ export default function App() {
       clearInterval(timerIntervalRef.current);
     }
 
-    // Save score to Champion Leaderboard
-    const championBoard: RoomPlayer[] = JSON.parse(localStorage.getItem('ballerid_champion_leaderboard') || '[]');
-    
     const newEntry: RoomPlayer = {
       nickname: nickname.trim(),
       score: score,
@@ -790,6 +809,8 @@ export default function App() {
       categoryStats
     };
 
+    // Save score to Champion Leaderboard (Optimistic local)
+    const championBoard: RoomPlayer[] = JSON.parse(localStorage.getItem('ballerid_champion_leaderboard') || '[]');
     const existingIdx = championBoard.findIndex(p => p.nickname.toLowerCase() === nickname.toLowerCase());
     if (existingIdx !== -1) {
       if (score > championBoard[existingIdx].score) {
@@ -798,12 +819,23 @@ export default function App() {
     } else {
       championBoard.push(newEntry);
     }
-
     championBoard.sort((a, b) => b.score - a.score);
     const limitedChampion = championBoard.slice(0, 20);
-
     localStorage.setItem('ballerid_champion_leaderboard', JSON.stringify(limitedChampion));
     setChampionPlayers(limitedChampion);
+
+    // Async save & sync to Supabase
+    saveResult({
+      nickname: newEntry.nickname,
+      score: newEntry.score,
+      mode: 'champion',
+      correctAnswers: newEntry.correctAnswers,
+      phaseReached: getPhaseReachedLabel(correctCount),
+      categoryStats: newEntry.categoryStats,
+      completedAt: newEntry.completedAt
+    }).then(() => {
+      loadChampionLeaderboard();
+    });
 
     setView('results');
   };
@@ -813,10 +845,6 @@ export default function App() {
       clearInterval(timerIntervalRef.current);
     }
 
-    // Save player score to Room ranking
-    const allRooms = JSON.parse(localStorage.getItem('ballerid_rooms') || '{}');
-    const players: RoomPlayer[] = allRooms[roomId] || [];
-    
     const newEntry: RoomPlayer = {
       nickname: nickname.trim(),
       score: score,
@@ -825,6 +853,9 @@ export default function App() {
       categoryStats
     };
 
+    // Save player score to Room ranking (Optimistic local)
+    const allRooms = JSON.parse(localStorage.getItem('ballerid_rooms') || '{}');
+    const players: RoomPlayer[] = allRooms[roomId] || [];
     const existingIdx = players.findIndex(p => p.nickname.toLowerCase() === nickname.toLowerCase());
     if (existingIdx !== -1) {
       if (score > players[existingIdx].score) {
@@ -833,13 +864,24 @@ export default function App() {
     } else {
       players.push(newEntry);
     }
-
     players.sort((a, b) => b.score - a.score);
     const limitedPlayers = players.slice(0, 20);
-
     allRooms[roomId] = limitedPlayers;
     localStorage.setItem('ballerid_rooms', JSON.stringify(allRooms));
     setRoomPlayers(limitedPlayers);
+
+    // Async save & sync to Supabase
+    saveResult({
+      nickname: newEntry.nickname,
+      score: newEntry.score,
+      mode: 'multiplayer',
+      correctAnswers: newEntry.correctAnswers,
+      roomId: roomId,
+      categoryStats: newEntry.categoryStats,
+      completedAt: newEntry.completedAt
+    }).then(() => {
+      loadRoomPlayers(roomId);
+    });
 
     setView('results');
   };

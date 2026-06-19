@@ -38,12 +38,6 @@ const ROLE_LABELS: Record<QuestionCategory, { ES: string; EN: string; icon: stri
   scouter:  { ES: 'Especialista Scouter', EN: 'Scouting Specialist', icon: '🔍' },
 };
 
-const DEFAULT_ROOM_BOTS: RoomPlayer[] = [
-  { nickname: "Pep Guardiola", score: 14850, completedAt: Date.now() - 3600000 * 2, correctAnswers: 15 },
-  { nickname: "Mikel Arteta", score: 12400, completedAt: Date.now() - 3600000 * 5, correctAnswers: 13 },
-  { nickname: "Carlo Ancelotti", score: 10200, completedAt: Date.now() - 3600000 * 12, correctAnswers: 11 },
-  { nickname: "Carles Puyol", score: 7800, completedAt: Date.now() - 3600000 * 24, correctAnswers: 8 }
-];
 
 const DEFAULT_GLOBAL_BOTS: RoomPlayer[] = [
   { nickname: "Pep Guardiola", score: 28950, completedAt: Date.now() - 3600000 * 2, correctAnswers: 29 },
@@ -263,6 +257,20 @@ export default function App() {
     }
   }, []);
 
+  // Poll Room Leaderboard every 5 seconds in multiplayer mode when in lobby or results views
+  useEffect(() => {
+    if (mode !== 'multiplayer' || !roomId || (view !== 'lobby' && view !== 'results')) return;
+
+    // Load immediately when entering view
+    loadRoomPlayers(roomId);
+
+    const interval = setInterval(() => {
+      loadRoomPlayers(roomId);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [mode, roomId, view]);
+
   // Auto-dismiss transition overlay
   useEffect(() => {
     if (!transitionPhase) return;
@@ -409,7 +417,7 @@ export default function App() {
     const cloudEntries = await fetchRoomLeaderboard(rId);
     const allRooms = JSON.parse(localStorage.getItem('ballerid_rooms') || '{}');
     const localBoard = allRooms[rId] || [];
-    const merged = mergeLeaderboards(cloudEntries as RoomPlayer[], localBoard.length > 0 ? localBoard : DEFAULT_ROOM_BOTS);
+    const merged = mergeLeaderboards(cloudEntries as RoomPlayer[], localBoard);
     
     // Cache merged version back to local
     allRooms[rId] = merged;
@@ -481,10 +489,9 @@ export default function App() {
 
     // Save initial room structure
     const allRooms = JSON.parse(localStorage.getItem('ballerid_rooms') || '{}');
-    const prePopulated = [...DEFAULT_ROOM_BOTS].sort((a, b) => b.score - a.score);
-    allRooms[randomCode] = prePopulated;
+    allRooms[randomCode] = [];
     localStorage.setItem('ballerid_rooms', JSON.stringify(allRooms));
-    setRoomPlayers(prePopulated);
+    setRoomPlayers([]);
 
     setView('lobby');
   };

@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { generateQuizQuestions } from './questionGenerator';
 import type { Question } from './questionGenerator';
-import { saveResult, fetchLeaderboard, fetchRoomLeaderboard } from './db';
+import { saveResult, fetchLeaderboard, fetchRoomLeaderboard, deleteResult } from './db';
 
 interface RoomPlayer {
   nickname: string;
@@ -65,6 +65,14 @@ export default function App() {
   const [isDetectedRoom, setIsDetectedRoom] = useState<boolean>(false);
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const quizStartTimeRef = useRef<number>(0);
+
+  // Admin Panel States
+  const [isAdminOpen, setIsAdminOpen] = useState<boolean>(false);
+  const [adminPassword, setAdminPassword] = useState<string>('');
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
+  const [adminError, setAdminError] = useState<string>('');
+  const [adminActiveTab, setAdminActiveTab] = useState<'individual' | 'champion' | 'multiplayer'>('individual');
+  const [adminRoomId, setAdminRoomId] = useState<string>('');
   
   // Save nickname to localStorage whenever it changes
   useEffect(() => {
@@ -407,10 +415,40 @@ export default function App() {
       ctx.lineTo(400, 240);
       ctx.stroke();
 
-      // 4. Bloque Central: Clasificación Top 5 en lugar del texto explicativo
+      // 4. Bloque de Métricas (swapped above the classification)
+      // Puntuación obtenida (gold or star if top 1)
+      ctx.fillStyle = '#D4AF37';
+      ctx.font = '700 15px Outfit';
+      const mvpStar = isTopPlayer ? ' ⭐ ¡MVP de la Partida!' : '';
+      ctx.fillText(`PUNTUACIÓN OBTENIDA: ${score.toLocaleString()} PTOS.${mvpStar}`, 300, 270, 320);
+
+      // Rol de Especialidad
+      if (Object.keys(categoryStats).length > 0) {
+        const role = calculateSpecialtyRole(categoryStats);
+        const roleInfo = ROLE_LABELS[role];
+        ctx.fillStyle = '#fdfbf7';
+        ctx.font = '700 14px Outfit';
+        ctx.fillText(`ROL ESPECIALIDAD: ${roleInfo.icon} ${(lang === 'ES' ? roleInfo.ES : roleInfo.EN).toUpperCase()}`, 300, 300, 320);
+      }
+
+      // Tiempo de juego y precisión
+      ctx.fillStyle = '#fdfbf7';
+      ctx.font = '500 12px Inter';
+      const precisionText = `${correctCount}/${mode === 'champion' ? '25' : mode === 'individual' ? '100' : '10'}`;
+      ctx.fillText(`TIEMPO DE JUEGO: ${elapsedTime}S    •    PRECISIÓN: ${precisionText}`, 300, 330, 320);
+
+      // Divider 2 (above the classification)
+      ctx.strokeStyle = 'rgba(212, 175, 55, 0.3)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(200, 360);
+      ctx.lineTo(400, 360);
+      ctx.stroke();
+
+      // 5. Bloque Central: Clasificación Top 5 (swapped below the metrics)
       ctx.fillStyle = '#D4AF37';
       ctx.font = '900 11px Outfit';
-      ctx.fillText('CLASIFICACIÓN TOP 5', 300, 265);
+      ctx.fillText('CLASIFICACIÓN TOP 5', 300, 385);
 
       const activeList = mode === 'individual' 
         ? globalPlayers 
@@ -421,7 +459,7 @@ export default function App() {
       const top5 = activeList.slice(0, 5);
       
       top5.forEach((player, idx) => {
-        const yPos = 290 + idx * 20;
+        const yPos = 415 + idx * 20;
         
         ctx.fillStyle = '#fdfbf7';
         ctx.font = '500 12px Inter';
@@ -437,32 +475,10 @@ export default function App() {
       // Restore alignment to center for the rest of drawing
       ctx.textAlign = 'center';
 
-      // 5. Bloque de Métricas
-      // Puntuación obtenida (gold or star if top 1)
-      ctx.fillStyle = '#D4AF37';
-      ctx.font = '700 15px Outfit';
-      const mvpStar = isTopPlayer ? ' ⭐ ¡MVP de la Partida!' : '';
-      ctx.fillText(`PUNTUACIÓN OBTENIDA: ${score.toLocaleString()} PTOS.${mvpStar}`, 300, 415, 320);
-
-      // Rol de Especialidad
-      if (Object.keys(categoryStats).length > 0) {
-        const role = calculateSpecialtyRole(categoryStats);
-        const roleInfo = ROLE_LABELS[role];
-        ctx.fillStyle = '#fdfbf7';
-        ctx.font = '700 14px Outfit';
-        ctx.fillText(`ROL ESPECIALIDAD: ${roleInfo.icon} ${(lang === 'ES' ? roleInfo.ES : roleInfo.EN).toUpperCase()}`, 300, 450, 320);
-      }
-
-      // Tiempo de juego y precisión
-      ctx.fillStyle = '#fdfbf7';
-      ctx.font = '500 12px Inter';
-      const precisionText = `${correctCount}/${mode === 'champion' ? '25' : mode === 'individual' ? '100' : '10'}`;
-      ctx.fillText(`TIEMPO DE JUEGO: ${elapsedTime}S    •    PRECISIÓN: ${precisionText}`, 300, 485, 320);
-
       // License ID
       ctx.fillStyle = 'rgba(253, 251, 247, 0.4)';
       ctx.font = '9px Inter';
-      ctx.fillText(`LICENCIA B-ID: BRD-${Math.random().toString(36).substring(2, 9).toUpperCase()}`, 300, 525);
+      ctx.fillText(`LICENCIA B-ID: BRD-${Math.random().toString(36).substring(2, 9).toUpperCase()}`, 300, 540);
 
       // 6. Bloque Inferior (aligned to fit inside reddish boundaries)
       ctx.fillStyle = '#D4AF37';
@@ -507,9 +523,10 @@ export default function App() {
 
   // Sync Room Leaderboard
   const loadRoomPlayers = async (rId: string) => {
-    const cloudEntries = await fetchRoomLeaderboard(rId);
+    let cloudEntries = await fetchRoomLeaderboard(rId);
+    cloudEntries = cloudEntries.filter(p => p.nickname.toLowerCase() !== 'cheat');
     const allRooms = JSON.parse(localStorage.getItem('ballerid_rooms') || '{}');
-    const localBoard = allRooms[rId] || [];
+    const localBoard = (allRooms[rId] || []).filter((p: RoomPlayer) => p.nickname.toLowerCase() !== 'cheat');
     const merged = mergeLeaderboards(cloudEntries as RoomPlayer[], localBoard);
     
     // Cache merged version back to local
@@ -520,10 +537,12 @@ export default function App() {
 
   // Load Global Leaderboard
   const loadGlobalLeaderboard = async () => {
-    const cloudEntries = await fetchLeaderboard('individual');
+    let cloudEntries = await fetchLeaderboard('individual');
+    cloudEntries = cloudEntries.filter(p => p.nickname.toLowerCase() !== 'cheat');
     const globalBoard = localStorage.getItem('ballerid_global_leaderboard');
     const localBoard = globalBoard ? JSON.parse(globalBoard) : [];
-    const merged = mergeLeaderboards(cloudEntries as RoomPlayer[], localBoard.length > 0 ? localBoard : DEFAULT_GLOBAL_BOTS);
+    const filteredLocal = localBoard.filter((p: RoomPlayer) => p.nickname.toLowerCase() !== 'cheat');
+    const merged = mergeLeaderboards(cloudEntries as RoomPlayer[], filteredLocal.length > 0 ? filteredLocal : DEFAULT_GLOBAL_BOTS.filter(p => p.nickname.toLowerCase() !== 'cheat'));
     
     localStorage.setItem('ballerid_global_leaderboard', JSON.stringify(merged));
     setGlobalPlayers(merged);
@@ -531,10 +550,12 @@ export default function App() {
 
   // Load Champion Leaderboard
   const loadChampionLeaderboard = async () => {
-    const cloudEntries = await fetchLeaderboard('champion');
+    let cloudEntries = await fetchLeaderboard('champion');
+    cloudEntries = cloudEntries.filter(p => p.nickname.toLowerCase() !== 'cheat');
     const board = localStorage.getItem('ballerid_champion_leaderboard');
     const localBoard = board ? JSON.parse(board) : [];
-    const merged = mergeLeaderboards(cloudEntries as RoomPlayer[], localBoard.length > 0 ? localBoard : DEFAULT_CHAMPION_BOTS);
+    const filteredLocal = localBoard.filter((p: RoomPlayer) => p.nickname.toLowerCase() !== 'cheat');
+    const merged = mergeLeaderboards(cloudEntries as RoomPlayer[], filteredLocal.length > 0 ? filteredLocal : DEFAULT_CHAMPION_BOTS.filter(p => p.nickname.toLowerCase() !== 'cheat'));
     
     localStorage.setItem('ballerid_champion_leaderboard', JSON.stringify(merged));
     setChampionPlayers(merged);
@@ -1056,6 +1077,46 @@ export default function App() {
     setRoomId('');
     setIsDetectedRoom(false);
     setView('welcome');
+  };
+
+  const handleAdminLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (adminPassword === '7a0admin') {
+      setIsAdminAuthenticated(true);
+      setAdminError('');
+    } else {
+      setAdminError('Contraseña incorrecta');
+    }
+  };
+
+  const handleAdminDelete = async (playerNickname: string, playerMode: 'individual' | 'champion' | 'multiplayer', pRoomId?: string) => {
+    const success = await deleteResult(playerNickname, playerMode, pRoomId);
+    if (success) {
+      if (playerMode === 'individual') {
+        const board = JSON.parse(localStorage.getItem('ballerid_global_leaderboard') || '[]');
+        const updated = board.filter((p: RoomPlayer) => p.nickname.toLowerCase() !== playerNickname.toLowerCase());
+        localStorage.setItem('ballerid_global_leaderboard', JSON.stringify(updated));
+        setGlobalPlayers(updated);
+        loadGlobalLeaderboard();
+      } else if (playerMode === 'champion') {
+        const board = JSON.parse(localStorage.getItem('ballerid_champion_leaderboard') || '[]');
+        const updated = board.filter((p: RoomPlayer) => p.nickname.toLowerCase() !== playerNickname.toLowerCase());
+        localStorage.setItem('ballerid_champion_leaderboard', JSON.stringify(updated));
+        setChampionPlayers(updated);
+        loadChampionLeaderboard();
+      } else if (playerMode === 'multiplayer' && pRoomId) {
+        const allRooms = JSON.parse(localStorage.getItem('ballerid_rooms') || '{}');
+        const board = allRooms[pRoomId] || [];
+        const updated = board.filter((p: RoomPlayer) => p.nickname.toLowerCase() !== playerNickname.toLowerCase());
+        allRooms[pRoomId] = updated;
+        localStorage.setItem('ballerid_rooms', JSON.stringify(allRooms));
+        setRoomPlayers(updated);
+        loadRoomPlayers(pRoomId);
+      }
+      alert('Jugador eliminado con éxito');
+    } else {
+      alert('Error al eliminar de Supabase. Asegúrate de haber ejecutado la política de borrado en Supabase.');
+    }
   };
 
   const activeQuestion = questions[currentIdx];
@@ -1860,7 +1921,7 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* Body Content */}
+                  {/* Body Content (swapped metrics above classification) */}
                   <div className="relative z-10 my-2 flex flex-col gap-1.5">
                     <h3 className="text-lg font-outfit font-black text-brand-cream tracking-wide uppercase truncate px-2">
                       {nickname}
@@ -1872,7 +1933,30 @@ export default function App() {
 
                     <div className="w-8 h-[1px] bg-feedback-warning/40 mx-auto my-0.5"></div>
 
-                    {/* Clasificación Top 5 en lugar del texto explicativo */}
+                    {/* Metrics */}
+                    <div className="flex flex-col gap-1 text-[11px] font-sans text-brand-cream/90 mt-1">
+                      <div className="font-outfit font-bold text-feedback-warning">
+                        PUNTUACIÓN: {score.toLocaleString()} PTOS. {isTopPlayer && '⭐ ¡MVP de la Partida!'}
+                      </div>
+                      
+                      {Object.keys(categoryStats).length > 0 && (() => {
+                        const role = calculateSpecialtyRole(categoryStats);
+                        const roleInfo = ROLE_LABELS[role];
+                        return (
+                          <div className="font-outfit font-bold text-brand-cream">
+                            ROL: {roleInfo.icon} {(lang === 'ES' ? roleInfo.ES : roleInfo.EN).toUpperCase()}
+                          </div>
+                        );
+                      })()}
+                      
+                      <div className="text-[9px] text-brand-cream/70">
+                        TIEMPO: {elapsedTime}S &bull; PRECISIÓN: {correctCount}/{mode === 'champion' ? '25' : mode === 'individual' ? '100' : '10'}
+                      </div>
+                    </div>
+
+                    <div className="w-8 h-[1px] bg-feedback-warning/40 mx-auto my-0.5"></div>
+
+                    {/* Clasificación Top 5 */}
                     <div className="flex flex-col gap-1 w-full max-w-[220px] mx-auto mb-2 border border-brand-cream/15 rounded p-2 bg-brand-wine/10 select-none">
                       <div className="text-[9px] uppercase tracking-widest text-feedback-warning font-sans font-bold mb-1">
                         Clasificación Top 5
@@ -1889,29 +1973,6 @@ export default function App() {
                             <span className="text-feedback-warning font-bold">{p.score.toLocaleString()}</span>
                           </div>
                         ))}
-                      </div>
-                    </div>
-
-                    <div className="w-8 h-[1px] bg-feedback-warning/40 mx-auto my-0.5"></div>
-
-                    {/* Metrics */}
-                    <div className="flex flex-col gap-1 text-[11px] font-sans text-brand-cream/90 mt-1">
-                      <div className="font-outfit font-bold text-feedback-warning">
-                        PUNTUACIÓN: {score.toLocaleString()} PTOS. {isTopPlayer && '⭐ ¡MVP de la Partida!'}
-                      </div>
-                      
-                      {Object.keys(categoryStats).length > 0 && (() => {
-                        const role = calculateSpecialtyRole(categoryStats);
-                        const roleInfo = ROLE_LABELS[role];
-                        return (
-                          <div className="font-outfit font-bold">
-                            ROL: {roleInfo.icon} {(lang === 'ES' ? roleInfo.ES : roleInfo.EN).toUpperCase()}
-                          </div>
-                        );
-                      })()}
-                      
-                      <div className="text-[9px] text-brand-cream/70">
-                        TIEMPO: {elapsedTime}S &bull; PRECISIÓN: {correctCount}/{mode === 'champion' ? '25' : mode === 'individual' ? '100' : '10'}
                       </div>
                     </div>
                   </div>
@@ -2087,6 +2148,20 @@ export default function App() {
                 })}
               </div>
 
+              {/* ROL LEGENDS PANEL */}
+              <div className="border-t border-brand-border mt-4 pt-4 text-[10px] text-brand-wine/80 leading-relaxed flex flex-col gap-2">
+                <h4 className="font-bold text-xs uppercase tracking-wider text-brand-wine/70">
+                  {lang === 'ES' ? '¿Por qué se asigna cada Rol de Especialidad?' : 'Why is each Specialty Role assigned?'}
+                </h4>
+                <div className="flex flex-col gap-1.5 font-mono text-[9px] leading-snug">
+                  <div>📊 <strong>{lang === 'ES' ? 'Analista Big Data' : 'Big Data Analyst'}</strong>: {lang === 'ES' ? 'Mayor número de aciertos en preguntas de volumen de datos, xG y métricas avanzadas (PPDA, regates, etc).' : 'Most correct answers in data volume, xG, and advanced metrics.'}</div>
+                  <div>🎯 <strong>{lang === 'ES' ? 'Gurú del Táctico' : 'Tactical Guru'}</strong>: {lang === 'ES' ? 'Mayor número de aciertos en preguntas de pases, posesión y formaciones de los equipos.' : 'Most correct answers in passes, possession, and team formations.'}</div>
+                  <div>⚡ <strong>{lang === 'ES' ? 'Preparador Físico' : 'Fitness Coach'}</strong>: {lang === 'ES' ? 'Mayor número de aciertos en preguntas de velocidad máxima, sprints de alta intensidad y distancias.' : 'Most correct answers in top speed, high-intensity sprints, and distance.'}</div>
+                  <div>📋 <strong>{lang === 'ES' ? 'El Pizarra / Míster' : 'The Tactician / Míster'}</strong>: {lang === 'ES' ? 'Mayor número de aciertos en preguntas sobre cambios tácticos y decisiones de entrenadores.' : 'Most correct answers in tactical changes and coach decisions.'}</div>
+                  <div>🔍 <strong>{lang === 'ES' ? 'Especialista Scouter' : 'Scouting Specialist'}</strong>: {lang === 'ES' ? 'Mayor número de aciertos en preguntas sobre rendimiento y estadísticas individuales de jugadores.' : 'Most correct answers in individual player performance and stats.'}</div>
+                </div>
+              </div>
+
             </div>
 
           </div>
@@ -2102,8 +2177,146 @@ export default function App() {
         <div className="flex items-center gap-4">
           <span>HOSTED VIA LOCALSTORAGE</span>
           <span>B-ID SECURE PROTOCOL</span>
+          <button 
+            type="button" 
+            onClick={() => setIsAdminOpen(true)} 
+            className="text-[10px] text-brand-wine/50 hover:text-brand-wine underline cursor-pointer"
+          >
+            Panel Admin
+          </button>
         </div>
       </footer>
+
+      {/* ADMIN MODAL */}
+      {isAdminOpen && (
+        <div className="fixed inset-0 bg-brand-wine/80 z-50 flex items-center justify-center p-4 animate-fade-in font-sans">
+          <div className="bg-brand-cream border-2 border-brand-border rounded-lg max-w-lg w-full p-6 shadow-2xl relative text-brand-wine">
+            <button 
+              type="button" 
+              onClick={() => {
+                setIsAdminOpen(false);
+                setIsAdminAuthenticated(false);
+                setAdminPassword('');
+                setAdminError('');
+              }} 
+              className="absolute top-4 right-4 text-brand-wine/60 hover:text-brand-wine font-bold text-lg cursor-pointer"
+            >
+              ✕
+            </button>
+            
+            <h3 className="text-lg font-serif font-bold text-brand-wine mb-4 uppercase tracking-wider">
+              Panel de Administración
+            </h3>
+            
+            {!isAdminAuthenticated ? (
+              <form onSubmit={handleAdminLogin} className="flex flex-col gap-4">
+                <div>
+                  <label className="block text-xs uppercase tracking-wider font-semibold mb-1">
+                    Contraseña del Administrador
+                  </label>
+                  <input 
+                    type="password"
+                    value={adminPassword}
+                    onChange={(e) => setAdminPassword(e.target.value)}
+                    placeholder="Escribe la contraseña"
+                    className="w-full border border-brand-border rounded px-4 py-2 bg-brand-cream/35 focus:outline-none focus:border-brand-wine font-mono text-sm"
+                    required
+                  />
+                  {adminError && <p className="text-xs text-feedback-error mt-1">{adminError}</p>}
+                </div>
+                <button 
+                  type="submit"
+                  className="bg-brand-wine text-brand-cream py-2 rounded hover:bg-brand-wine/90 font-serif text-sm tracking-wide transition-all cursor-pointer font-bold"
+                >
+                  Acceder
+                </button>
+              </form>
+            ) : (
+              <div className="flex flex-col gap-4">
+                {/* Tabs switcher */}
+                <div className="flex border-b border-brand-border text-xs font-semibold">
+                  <button 
+                    type="button" 
+                    onClick={() => setAdminActiveTab('individual')} 
+                    className={`flex-1 py-2 text-center border-b-2 cursor-pointer ${adminActiveTab === 'individual' ? 'border-brand-wine text-brand-wine font-bold' : 'border-transparent text-brand-wine/60'}`}
+                  >
+                    Muerte Súbita
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => setAdminActiveTab('champion')} 
+                    className={`flex-1 py-2 text-center border-b-2 cursor-pointer ${adminActiveTab === 'champion' ? 'border-brand-wine text-brand-wine font-bold' : 'border-transparent text-brand-wine/60'}`}
+                  >
+                    Campeonato
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => setAdminActiveTab('multiplayer')} 
+                    className={`flex-1 py-2 text-center border-b-2 cursor-pointer ${adminActiveTab === 'multiplayer' ? 'border-brand-wine text-brand-wine font-bold' : 'border-transparent text-brand-wine/60'}`}
+                  >
+                    Salas (Lobby)
+                  </button>
+                </div>
+                
+                {/* Multiplayer Room Selector */}
+                {adminActiveTab === 'multiplayer' && (
+                  <div className="flex gap-2 items-center bg-brand-wine/5 border border-brand-border p-2 rounded">
+                    <input 
+                      type="text" 
+                      placeholder="ID de Sala (ej: BRD-XXXXX)"
+                      value={adminRoomId}
+                      onChange={(e) => setAdminRoomId(e.target.value.toUpperCase())}
+                      className="flex-1 border border-brand-border rounded px-3 py-1 bg-brand-cream uppercase font-mono text-xs focus:outline-none"
+                    />
+                    <button 
+                      type="button" 
+                      onClick={() => loadRoomPlayers(adminRoomId)}
+                      className="bg-brand-wine text-brand-cream px-3 py-1 rounded text-xs hover:bg-brand-wine/90 cursor-pointer font-bold"
+                    >
+                      Cargar
+                    </button>
+                  </div>
+                )}
+                
+                {/* Player List */}
+                <div className="max-h-60 overflow-y-auto border border-brand-border rounded p-2 flex flex-col gap-1.5 bg-brand-cream/35">
+                  {(adminActiveTab === 'individual' 
+                    ? globalPlayers 
+                    : adminActiveTab === 'champion' 
+                    ? championPlayers 
+                    : (adminRoomId ? roomPlayers : [])
+                  ).length === 0 ? (
+                    <p className="text-xs text-brand-wine/60 italic text-center py-4">
+                      No hay registros disponibles.
+                    </p>
+                  ) : (
+                    (adminActiveTab === 'individual' 
+                      ? globalPlayers 
+                      : adminActiveTab === 'champion' 
+                      ? championPlayers 
+                      : roomPlayers
+                    ).map((player, idx) => (
+                      <div key={player.nickname + idx} className="flex justify-between items-center bg-brand-cream border border-brand-border/60 p-2 rounded text-xs">
+                        <div className="font-mono">
+                          <span className="font-bold text-brand-wine">#{idx+1} {player.nickname.toUpperCase()}</span>
+                          <span className="text-brand-wine/60 ml-2">({player.score.toLocaleString()} pts)</span>
+                        </div>
+                        <button 
+                          type="button"
+                          onClick={() => handleAdminDelete(player.nickname, adminActiveTab, adminActiveTab === 'multiplayer' ? adminRoomId : undefined)}
+                          className="bg-feedback-error text-brand-cream px-2 py-0.5 rounded text-[10px] hover:opacity-95 cursor-pointer font-bold"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

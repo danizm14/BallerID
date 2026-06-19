@@ -32,3 +32,9 @@ CREATE POLICY "Allow public insert"
   ON leaderboard 
   FOR INSERT 
   WITH CHECK (true);
+
+-- Allow public deletes (for the admin panel)
+CREATE POLICY "Allow public delete" 
+  ON leaderboard 
+  FOR DELETE 
+  USING (true);

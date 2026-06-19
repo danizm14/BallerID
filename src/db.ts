@@ -156,3 +156,30 @@ export async function fetchRoomLeaderboard(
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
 }
+
+// ─── Delete result ────────────────────────────────────────────────────────────
+
+export async function deleteResult(
+  nickname: string,
+  mode: 'individual' | 'champion' | 'multiplayer',
+  roomId?: string
+): Promise<boolean> {
+  if (!supabase) return false;
+
+  let query = supabase
+    .from('leaderboard')
+    .delete()
+    .eq('nickname', nickname)
+    .eq('mode', mode);
+
+  if (roomId) {
+    query = query.eq('room_id', roomId);
+  }
+
+  const { error } = await query;
+  if (error) {
+    console.error('[BallerID] Failed to delete entry from Supabase:', error.message);
+    return false;
+  }
+  return true;
+}

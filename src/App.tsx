@@ -68,6 +68,7 @@ export default function App() {
   const [view, setView] = useState<'welcome' | 'lobby' | 'quiz' | 'results'>('welcome');
   const [roomId, setRoomId] = useState<string>('');
   const [nickname, setNickname] = useState<string>('');
+  const [isDetectedRoom, setIsDetectedRoom] = useState<boolean>(false);
   
   // Leaderboards
   const [roomPlayers, setRoomPlayers] = useState<RoomPlayer[]>([]);
@@ -258,6 +259,7 @@ export default function App() {
       setMode('multiplayer');
       setRoomId(rId.toUpperCase());
       loadRoomPlayers(rId.toUpperCase());
+      setIsDetectedRoom(true);
     }
   }, []);
 
@@ -895,6 +897,7 @@ export default function App() {
     const cleanUrl = `${window.location.origin}${window.location.pathname}`;
     window.history.pushState({ path: cleanUrl }, '', cleanUrl);
     setRoomId('');
+    setIsDetectedRoom(false);
     setView('welcome');
   };
 
@@ -1047,7 +1050,7 @@ export default function App() {
                       ? handleStartIndividual 
                       : mode === 'champion'
                       ? handleStartChampion
-                      : (roomId ? handleJoinRoom : handleCreateRoom)
+                      : (isDetectedRoom ? handleJoinRoom : handleCreateRoom)
                   }
                 >
                   {mode === 'champion' && (
@@ -1095,7 +1098,7 @@ export default function App() {
                     </button>
                   ) : (
                     /* Multiplayer Room Flow */
-                    roomId ? (
+                    isDetectedRoom ? (
                       <div className="flex flex-col gap-2">
                         <div className="bg-brand-wine/5 border border-brand-border rounded p-3 mb-2 flex items-center gap-3">
                           <Users className="w-5 h-5 flex-shrink-0" />
@@ -1129,6 +1132,12 @@ export default function App() {
                             placeholder="ROOM-ID"
                             value={roomId}
                             onChange={(e) => setRoomId(e.target.value.toUpperCase())}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleJoinRoom(e);
+                              }
+                            }}
                             className="w-full border border-brand-border rounded-l px-3 bg-brand-cream/35 uppercase font-mono text-center focus:outline-none focus:border-brand-wine"
                           />
                           <button 

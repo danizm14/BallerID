@@ -355,10 +355,10 @@ export default function App() {
       ctx.strokeRect(30, 30, 540, 740);
 
       // Draw logo in the top center
-      const logoWidth = 70;
-      const logoHeight = 70;
+      const logoWidth = 64;
+      const logoHeight = 64;
       const logoX = 300 - logoWidth / 2;
-      const logoY = 45;
+      const logoY = 50;
 
       ctx.save();
       ctx.beginPath();
@@ -375,16 +375,16 @@ export default function App() {
       ctx.arc(300, logoY + logoHeight / 2, logoWidth / 2, 0, Math.PI * 2);
       ctx.stroke();
 
-      // 1. Title Principal: "CERTIFICADO DE RECONOCIMIENTO"
+      // 1. Title Principal: "CERTIFICADO DE RECONOCIMIENTO" (compressed to fit reddish field)
       ctx.fillStyle = '#D4AF37'; 
-      ctx.font = '900 24px Outfit';
+      ctx.font = '900 17px Outfit';
       ctx.textAlign = 'center';
-      ctx.fillText('CERTIFICADO DE RECONOCIMIENTO', 300, 160);
+      ctx.fillText('CERTIFICADO DE RECONOCIMIENTO', 300, 150, 320);
 
-      // 2. Apodo del Jugador (large)
+      // 2. Apodo del Jugador (large, compressed)
       ctx.fillStyle = '#fdfbf7'; 
-      ctx.font = '900 36px Outfit';
-      ctx.fillText(nickname.toUpperCase(), 300, 210);
+      ctx.font = '900 32px Outfit';
+      ctx.fillText(nickname.toUpperCase(), 300, 195, 300);
 
       // 3. Condicional de Modo
       ctx.fillStyle = '#D4AF37';
@@ -397,61 +397,76 @@ export default function App() {
       } else {
         modeText = 'Modo: Sala Multijugador';
       }
-      ctx.fillText(modeText.toUpperCase(), 300, 235);
+      ctx.fillText(modeText.toUpperCase(), 300, 220, 300);
 
       // Divider
       ctx.strokeStyle = 'rgba(212, 175, 55, 0.3)';
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.moveTo(200, 260);
-      ctx.lineTo(400, 260);
+      ctx.moveTo(200, 240);
+      ctx.lineTo(400, 240);
       ctx.stroke();
 
-      // 4. Bloque Central: Texto explicativo
-      ctx.fillStyle = '#fdfbf7'; 
-      ctx.font = '400 13px Inter';
-      ctx.fillText('Por su destacada participación en el modo de juego', 300, 295);
+      // 4. Bloque Central: Clasificación Top 5 en lugar del texto explicativo
+      ctx.fillStyle = '#D4AF37';
+      ctx.font = '900 11px Outfit';
+      ctx.fillText('CLASIFICACIÓN TOP 5', 300, 265);
+
+      const activeList = mode === 'individual' 
+        ? globalPlayers 
+        : mode === 'champion'
+        ? championPlayers
+        : roomPlayers;
       
-      let detailGameText = '';
-      if (mode === 'champion') {
-        detailGameText = 'Torneo Oficial (CHAMPIONSHIP) en la plataforma BallerID';
-      } else if (mode === 'individual') {
-        detailGameText = 'Muerte Súbita (Récord Personal) en la plataforma BallerID';
-      } else {
-        detailGameText = 'Multijugador (Sala de Competencia) en la plataforma BallerID';
-      }
-      ctx.fillText(detailGameText, 300, 315);
+      const top5 = activeList.slice(0, 5);
+      
+      top5.forEach((player, idx) => {
+        const yPos = 290 + idx * 20;
+        
+        ctx.fillStyle = '#fdfbf7';
+        ctx.font = '500 12px Inter';
+        ctx.textAlign = 'left';
+        ctx.fillText(`#${idx + 1}  ${player.nickname.toUpperCase()}`, 160, yPos, 180);
+
+        ctx.fillStyle = '#D4AF37';
+        ctx.font = '700 12px Inter';
+        ctx.textAlign = 'right';
+        ctx.fillText(`${player.score.toLocaleString()} PTS`, 440, yPos);
+      });
+
+      // Restore alignment to center for the rest of drawing
+      ctx.textAlign = 'center';
 
       // 5. Bloque de Métricas
       // Puntuación obtenida (gold or star if top 1)
       ctx.fillStyle = '#D4AF37';
-      ctx.font = '700 16px Outfit';
+      ctx.font = '700 15px Outfit';
       const mvpStar = isTopPlayer ? ' ⭐ ¡MVP de la Partida!' : '';
-      ctx.fillText(`PUNTUACIÓN OBTENIDA: ${score.toLocaleString()} PTOS.${mvpStar}`, 300, 385);
+      ctx.fillText(`PUNTUACIÓN OBTENIDA: ${score.toLocaleString()} PTOS.${mvpStar}`, 300, 415, 320);
 
       // Rol de Especialidad
       if (Object.keys(categoryStats).length > 0) {
         const role = calculateSpecialtyRole(categoryStats);
         const roleInfo = ROLE_LABELS[role];
         ctx.fillStyle = '#fdfbf7';
-        ctx.font = '700 16px Outfit';
-        ctx.fillText(`ROL ESPECIALIDAD: ${roleInfo.icon} ${(lang === 'ES' ? roleInfo.ES : roleInfo.EN).toUpperCase()}`, 300, 425);
+        ctx.font = '700 14px Outfit';
+        ctx.fillText(`ROL ESPECIALIDAD: ${roleInfo.icon} ${(lang === 'ES' ? roleInfo.ES : roleInfo.EN).toUpperCase()}`, 300, 450, 320);
       }
 
       // Tiempo de juego y precisión
       ctx.fillStyle = '#fdfbf7';
-      ctx.font = '500 13px Inter';
+      ctx.font = '500 12px Inter';
       const precisionText = `${correctCount}/${mode === 'champion' ? '25' : mode === 'individual' ? '100' : '10'}`;
-      ctx.fillText(`TIEMPO DE JUEGO: ${elapsedTime}S    •    PRECISIÓN: ${precisionText}`, 300, 465);
+      ctx.fillText(`TIEMPO DE JUEGO: ${elapsedTime}S    •    PRECISIÓN: ${precisionText}`, 300, 485, 320);
 
       // License ID
       ctx.fillStyle = 'rgba(253, 251, 247, 0.4)';
-      ctx.font = '10px Inter';
-      ctx.fillText(`LICENCIA B-ID: BRD-${Math.random().toString(36).substring(2, 9).toUpperCase()}`, 300, 520);
+      ctx.font = '9px Inter';
+      ctx.fillText(`LICENCIA B-ID: BRD-${Math.random().toString(36).substring(2, 9).toUpperCase()}`, 300, 525);
 
-      // 6. Bloque Inferior
+      // 6. Bloque Inferior (aligned to fit inside reddish boundaries)
       ctx.fillStyle = '#D4AF37';
-      ctx.font = '700 12px Inter';
+      ctx.font = '700 11px Inter';
       
       // Fecha a la izquierda
       ctx.textAlign = 'left';
@@ -459,11 +474,11 @@ export default function App() {
       const day = String(today.getDate()).padStart(2, '0');
       const month = String(today.getMonth() + 1).padStart(2, '0');
       const year = today.getFullYear();
-      ctx.fillText(`FECHA: ${day}/${month}/${year}`, 50, 730);
+      ctx.fillText(`FECHA: ${day}/${month}/${year}`, 160, 715);
 
       // Firma Autorizada a la derecha
       ctx.textAlign = 'right';
-      ctx.fillText('FIRMA DIGITAL AUTORIZADA', 550, 730);
+      ctx.fillText('FIRMA DIGITAL AUTORIZADA', 440, 715);
 
       // Download
       const dataUrl = canvas.toDataURL('image/png');
@@ -1845,14 +1860,6 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* Header: Logo and Title */}
-                  <div className="relative z-10 pt-2 flex flex-col items-center gap-2">
-                    <img src="/logo.jpg" alt="Logo" className="w-12 h-12 rounded-full border-2 border-feedback-warning object-cover" />
-                    <h4 className="text-[10px] font-outfit font-black tracking-wider text-feedback-warning uppercase">
-                      CERTIFICADO DE RECONOCIMIENTO
-                    </h4>
-                  </div>
-
                   {/* Body Content */}
                   <div className="relative z-10 my-2 flex flex-col gap-1.5">
                     <h3 className="text-lg font-outfit font-black text-brand-cream tracking-wide uppercase truncate px-2">
@@ -1865,9 +1872,25 @@ export default function App() {
 
                     <div className="w-8 h-[1px] bg-feedback-warning/40 mx-auto my-0.5"></div>
 
-                    <p className="text-[10px] text-brand-cream/80 font-sans leading-relaxed">
-                      Por su destacada participación en el modo de juego de rendimiento y analítica avanzada de fútbol BallerID.
-                    </p>
+                    {/* Clasificación Top 5 en lugar del texto explicativo */}
+                    <div className="flex flex-col gap-1 w-full max-w-[220px] mx-auto mb-2 border border-brand-cream/15 rounded p-2 bg-brand-wine/10 select-none">
+                      <div className="text-[9px] uppercase tracking-widest text-feedback-warning font-sans font-bold mb-1">
+                        Clasificación Top 5
+                      </div>
+                      <div className="flex flex-col gap-0.5 text-[9px] font-mono text-brand-cream/90">
+                        {(mode === 'individual' 
+                          ? globalPlayers 
+                          : mode === 'champion' 
+                          ? championPlayers 
+                          : roomPlayers
+                        ).slice(0, 5).map((p, i) => (
+                          <div key={p.nickname + i} className="flex justify-between">
+                            <span>#{i + 1} {p.nickname.toUpperCase()}</span>
+                            <span className="text-feedback-warning font-bold">{p.score.toLocaleString()}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
 
                     <div className="w-8 h-[1px] bg-feedback-warning/40 mx-auto my-0.5"></div>
 
@@ -1894,7 +1917,7 @@ export default function App() {
                   </div>
 
                   {/* Footer */}
-                  <div className="relative z-10 flex justify-between items-center text-[8px] font-sans font-bold text-feedback-warning/80 border-t border-brand-cream/10 pt-2 px-1">
+                  <div className="relative z-10 flex justify-between items-center text-[8px] font-sans font-bold text-feedback-warning/80 border-t border-brand-cream/10 pt-2 px-1 max-w-[220px] mx-auto">
                     <div>FECHA: {(() => {
                       const today = new Date();
                       const day = String(today.getDate()).padStart(2, '0');

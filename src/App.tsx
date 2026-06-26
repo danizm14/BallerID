@@ -31,11 +31,11 @@ interface RoomPlayer {
 type QuestionCategory = 'big_data' | 'tictac' | 'physique' | 'coach' | 'scouter';
 
 const ROLE_LABELS: Record<QuestionCategory, { ES: string; EN: string; icon: string }> = {
-  big_data: { ES: 'Analista Big Data', EN: 'Big Data Analyst', icon: '📊' },
-  tictac:   { ES: 'Gurú del Táctico', EN: 'Tactical Guru', icon: '🎯' },
-  physique: { ES: 'Preparador Físico', EN: 'Fitness Coach', icon: '⚡' },
-  coach:    { ES: 'El Pizarra / Míster', EN: 'The Tactician / Míster', icon: '📋' },
-  scouter:  { ES: 'Especialista Scouter', EN: 'Scouting Specialist', icon: '🔍' },
+  big_data: { ES: 'Historiador de Mundiales', EN: 'World Cup Historian', icon: '🏆' },
+  tictac:   { ES: 'Especialista en 2026', EN: 'World Cup 2026 Specialist', icon: '🌍' },
+  scouter:  { ES: 'Cazatalentos de Leyendas', EN: 'Legend Scout', icon: '⭐' },
+  coach:    { ES: 'Gurú de Grandes Ligas', EN: 'Major Leagues Guru', icon: '⚽' },
+  physique: { ES: 'Especialista Transfermarkt', EN: 'Transfermarkt Expert', icon: '📈' },
 };
 
 
@@ -115,7 +115,7 @@ export default function App() {
     ES: {
       title: "BallerID",
       subtitle: "Control de Pasaportes y Rendimiento FIFA",
-      tagline: "El quiz definitivo sobre analítica avanzada de fútbol y métricas FIFA.",
+      tagline: "El quiz definitivo de trivia de fútbol: Mundiales, Estrellas y Valores de Mercado.",
       modeInd: "Desafío Individual (Muerte Súbita)",
       modeMult: "Multijugador (Salas)",
       modeChamp: "Campeonato Mundial",
@@ -176,8 +176,8 @@ export default function App() {
       viewLobby: "Volver a la Sala",
       viewMainMenu: "Volver al Menú",
       speedBonus: "Bono de velocidad",
-      rulesTitle: "Manual del entrenador FIFA",
-      rule1: "Preguntas dinámicas basadas en métricas reales de todo el torneo (centros, pases, velocidad, xG).",
+      rulesTitle: "Manual del Entrenador de Fútbol",
+      rule1: "Preguntas de trivia sobre Historia de los Mundiales, Mundial 2026, Grandes Ligas, Estrellas y Valores de Transfermarkt.",
       rule2: "Límite estricto de 15 segundos por pregunta.",
       rule3: "Puntuación = 500 base + Bono de velocidad (hasta 500 extra por responder rápido).",
       rule4: "En Muerte Súbita, si fallas una sola pregunta la partida termina de inmediato.",
@@ -186,7 +186,7 @@ export default function App() {
     EN: {
       title: "BallerID",
       subtitle: "FIFA Performance Passport Control",
-      tagline: "The ultimate quiz on advanced football analytics and FIFA metrics.",
+      tagline: "The ultimate football trivia quiz: World Cups, Stars, and Market Values.",
       modeInd: "Single Player (Sudden Death)",
       modeMult: "Multiplayer (Rooms)",
       modeChamp: "World Championship",
@@ -247,8 +247,8 @@ export default function App() {
       viewLobby: "Return to Lobby",
       viewMainMenu: "Return to Menu",
       speedBonus: "Speed bonus",
-      rulesTitle: "FIFA Coach Handbook",
-      rule1: "Dynamic questions based on real stats across all teams (crosses, passes, speed, xG).",
+      rulesTitle: "Football Coach Handbook",
+      rule1: "Trivia questions about World Cup History, World Cup 2026, Major Leagues, Stars, and Transfermarkt Values.",
       rule2: "Strict 15-second time limit per question.",
       rule3: "Score = 500 base + Speed bonus (up to 500 extra for answering quickly).",
       rule4: "In Sudden Death, if you miss a single question the game ends immediately.",
